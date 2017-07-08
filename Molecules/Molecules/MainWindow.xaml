@@ -3,14 +3,18 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Molecules"
         mc:Ignorable="d"
-        Title="MainWindow" Height="500" Width="500">
+        Title="MainWindow" Height="550" Width="550" Loaded="MainWindow_OnLoaded">
     <Grid>
-        <Canvas x:Name="MyCanvas" Width="500" Height="500">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Canvas x:Name="MyCanvas" Width="500" Height="500" Margin="0">
             <Canvas.Background>
                 <SolidColorBrush Color="White" Opacity="0"/>
             </Canvas.Background>
+            <Rectangle Name="Maternity" Fill="#FF2DE2E8" StrokeThickness="3" Width="65" Height="65" Canvas.Left="0" Canvas.Top="0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+            <Rectangle Name="AirPump" Fill="#FF110403" StrokeThickness="3" Width="65" Height="65" Canvas.Right="0" Canvas.Bottom="0"  HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
         </Canvas>
     </Grid>
 </Window>
