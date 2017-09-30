@@ -1,29 +1,39 @@
-﻿using System;
-using System.Windows;
+﻿using System.Windows;
+using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
 namespace Molecules
 {
-    class MoleculeFactory : IFactory<Ellipse>
+    public class MoleculeFactory : IFactory<Ellipse>
     {
-        private const int CircleDiameter = 50;
-        private object _syncObj = new object();
-        public Ellipse NewInstance(Dispatcher dispatcher)
+        private const int CircleDiameter = 60;
+        private readonly Dispatcher _dispetcher;
+        private readonly Thickness _startMargin = new Thickness(0);
+        public MoleculeFactory(Dispatcher dispetcher)
         {
-            dispatcher.Invoke((Action) (() =>
+            _dispetcher = dispetcher;
+        }
+
+        public Ellipse NewInstance()
+        {
+            return _dispetcher.Invoke(() =>
             {
                 Ellipse ellipse = new Ellipse();
 
                 ellipse.Stroke = SystemColors.WindowFrameBrush;
                 ellipse.Height = CircleDiameter;
                 ellipse.Width = CircleDiameter;
-                ellipse.StrokeThickness = 5;
+                ellipse.Margin = _startMargin;
+                ellipse.Fill = new SolidColorBrush(Colors.Blue);
 
-                MyCanvas.Children.Add(ellipse);
-            }));
-            return ellipse;
+                return ellipse;
+            });
+        }
 
+        public void Reset(Ellipse instance)
+        {
+            instance.Margin = _startMargin;
         }
     }
 }

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace Molecules
 {
@@ -13,12 +12,6 @@ namespace Molecules
 
         private readonly IFactory<T> _generator;
         private readonly uint _capacity;
-
-        //TOdo ako sa zmeni rychlost ked menit zamky?
-        private readonly object _syncGiveNow = new object();
-        private readonly object _syncGiveWait = new object();
-        private readonly object _syncGiveFree = new object();
-        private readonly object _syncGive = new object();
 
         #region constructor
         /// <summary>

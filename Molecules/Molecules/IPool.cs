@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Molecules
+﻿namespace Molecules
 {
     public interface IPool<T>
     {

@@ -17,68 +17,67 @@ namespace Molecules
         #region constants
         private const int CanvasSize = 500;
         private const int CircleDiameter = 60;
-        private const int Frequency = 500;
+        private const int Frequency = 100;
         private const int MaxSpeed = 100;
         private const int MaternitySize = 75;
         private const int AirPumpSize = 75;
-        private const int capacity = 20;
+        private const int capacity = 2;
         #endregion constants
 
         private int xMax = CanvasSize - AirPumpSize - CircleDiameter / 2;
-        public HashSet<Ellipse> molecules = new HashSet<Ellipse>();
+        private readonly HashSet<Ellipse> _molecules = new HashSet<Ellipse>();
         private readonly Random _random = new Random();
         private readonly BackgroundWorker _backgroundWorker;
         private readonly Pool<Ellipse> _pool;
-
-        Task _drawNew;
-        Task _moveTask;
-        Task _deleteTask;
+        private Task _drawNew;
+        private Task _moveTask;
+        private Task _deleteTask;
 
         public MainWindow()
         {
             InitializeComponent();
-            MyCanvas.Width = CanvasSize;
-            MyCanvas.Height = CanvasSize;
-            Maternity.Width = MaternitySize;
-            Maternity.Height = MaternitySize;
-            AirPump.Width = AirPumpSize;
-            AirPump.Height = AirPumpSize;
 
-            _pool = new Pool<Ellipse>(new MoleculeFactory(this.Dispatcher), capacity);
-
+            _pool = new Pool<Ellipse>(new MoleculeFactory(Dispatcher), capacity);
 
             _backgroundWorker = new BackgroundWorker();
 
+            StartDrawTask();
+            StartMoveTask();
+            StartDeleteTask();
+
             _backgroundWorker.DoWork += (s, ev) =>
             {
-                Task drawNew = new Task(DrawNewEllipse);
-                drawNew.Start();
-                Task moveTask = new Task(Move);
-                moveTask.Start();
-
-                Task deleteTask = new Task(Delete);
-                deleteTask.Start();
-
-                Dispatcher.Invoke(() =>
-                {
-                    if (drawNew.IsCompleted)
-                    {
-                        drawNew = new Task(DrawNewEllipse);
-                        drawNew.Start();
-                    }
-                    if (moveTask.IsCompleted)
-                    {
-                        moveTask = new Task(Move);
-                        moveTask.Start();
-                    }
-                    if (deleteTask.IsCompleted)
-                    {
-                        deleteTask = new Task(Delete);
-                        deleteTask.Start();
-                    }
-                });
-
+                Dispatcher.Invoke(StartWork);
             };
+        }
+
+        private void StartWork()
+        {
+            if (_drawNew.IsCompleted)
+                StartDrawTask();
+
+            if (_moveTask.IsCompleted)
+                StartMoveTask();
+
+            if (_deleteTask.IsCompleted)
+                StartDeleteTask();
+        }
+
+        private void StartDrawTask()
+        {
+            _drawNew = new Task(DrawNewEllipse);
+            _drawNew.Start();
+        }
+
+        private void StartMoveTask()
+        {
+            _moveTask = new Task(Move);
+            _moveTask.Start();
+        }
+        private void StartDeleteTask()
+        {
+            _deleteTask = new Task(Delete);
+            _deleteTask.Start();
         }
 
         private void Delete()
@@ -87,7 +86,7 @@ namespace Molecules
             {
                 List<Ellipse> moleculesToDelete = new List<Ellipse>();
 
-                foreach (var molecule in molecules)
+                foreach (var molecule in _molecules)
                 {
                     if (molecule.Margin.Left < xMax || molecule.Margin.Top < xMax) continue;
 
@@ -98,7 +97,7 @@ namespace Molecules
 
                 for (int i = 0; i < moleculesToDelete.Count; i++)
                 {
-                    molecules.Remove(moleculesToDelete[i]);
+                    _molecules.Remove(moleculesToDelete[i]);
                 }
             });
         }
@@ -115,7 +114,7 @@ namespace Molecules
         {
             Dispatcher.Invoke(() =>
             {
-                foreach (var molecule in molecules)
+                foreach (var molecule in _molecules)
                 {
                     Thickness newMargin = new Thickness();
                     newMargin.Left = GetNewValue(molecule.Margin.Left);
@@ -149,7 +148,7 @@ namespace Molecules
 
             Dispatcher.Invoke(() =>
             {
-                molecules.Add(ellipse);
+                _molecules.Add(ellipse);
                 MyCanvas.Children.Add(ellipse);
             });
         }
