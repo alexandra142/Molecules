@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
@@ -22,10 +23,11 @@ namespace Molecules
         private const int WindowCanvasDiff = 50;
         #endregion constants
 
-        private int xMax = CanvasSize - AirPumpSize- CircleDiameter/2;
+        private int xMax = CanvasSize - AirPumpSize - CircleDiameter / 2;
         private readonly HashSet<Ellipse> molecules = new HashSet<Ellipse>();
         private readonly Random _random = new Random();
         private readonly BackgroundWorker _backgroundWorker;
+        private readonly Pool<Ellipse> pool;
         public MainWindow()
         {
             InitializeComponent();
@@ -35,6 +37,9 @@ namespace Molecules
             Maternity.Height = MaternitySize;
             AirPump.Width = AirPumpSize;
             AirPump.Height = AirPumpSize;
+
+            pool = new Pool<Ellipse>(new MoleculeFactory<Ellipse>());
+
 
             _backgroundWorker = new BackgroundWorker();
 
@@ -50,7 +55,7 @@ namespace Molecules
         {
             foreach (var molecule in molecules)
             {
-                if(molecule.Margin.Left > xMax && molecule.Margin.Top > xMax)
+                if (molecule.Margin.Left > xMax && molecule.Margin.Top > xMax)
                     MyCanvas.Children.Remove(molecule);
             }
         }
@@ -81,11 +86,11 @@ namespace Molecules
 
         private double GetNewValue(double oldValue)
         {
-            int speed = MaxSpeed/2;
-            if(oldValue >= CanvasSize/3 && oldValue <= CanvasSize*2/3)
-            speed = MaxSpeed;
+            int speed = MaxSpeed / 2;
+            if (oldValue >= CanvasSize / 3 && oldValue <= CanvasSize * 2 / 3)
+                speed = MaxSpeed;
             if (oldValue <= CanvasSize / 4 || oldValue >= CanvasSize * 3 / 4)
-                speed = MaxSpeed/10;
+                speed = MaxSpeed / 10;
             if (oldValue > xMax)
                 return oldValue - _random.Next(speed);
 
@@ -113,4 +118,5 @@ namespace Molecules
                 _backgroundWorker.RunWorkerAsync();
         }
     }
+   
 }
