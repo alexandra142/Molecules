@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Shapes;
 
 namespace Molecules
@@ -15,19 +16,21 @@ namespace Molecules
         private const int CanvasSize = 500;
         private const int CircleDiameter = 60;
         private const int Frequency = 500;
-        private const int MaxSpeed = 30;
+        private const int MaxSpeed = 100;
         private const int MaternitySize = 75;
         private const int AirPumpSize = 75;
+        private const int WindowCanvasDiff = 50;
         #endregion constants
 
-        private int xMax = CanvasSize - CircleDiameter;
-        private int yMax = CanvasSize - CircleDiameter;
+        private int xMax = CanvasSize - AirPumpSize- CircleDiameter/2;
         private readonly HashSet<Ellipse> molecules = new HashSet<Ellipse>();
         private readonly Random _random = new Random();
         private readonly BackgroundWorker _backgroundWorker;
         public MainWindow()
         {
             InitializeComponent();
+            MyCanvas.Width = CanvasSize;
+            MyCanvas.Height = CanvasSize;
             Maternity.Width = MaternitySize;
             Maternity.Height = MaternitySize;
             AirPump.Width = AirPumpSize;
@@ -39,9 +42,17 @@ namespace Molecules
             {
                 Dispatcher.Invoke(DrawNewEllipse);
                 Dispatcher.Invoke(Move);
+                Dispatcher.Invoke(Delete);
             };
+        }
 
-
+        private void Delete()
+        {
+            foreach (var molecule in molecules)
+            {
+                if(molecule.Margin.Left > xMax && molecule.Margin.Top > xMax)
+                    MyCanvas.Children.Remove(molecule);
+            }
         }
 
         private void MainWindow_OnLoaded(object sender, RoutedEventArgs e)
@@ -70,23 +81,28 @@ namespace Molecules
 
         private double GetNewValue(double oldValue)
         {
-            var newValue = oldValue + _random.Next(MaxSpeed) - _random.Next(MaxSpeed / 2);
-            while (newValue > xMax)
-                newValue = oldValue + _random.Next(MaxSpeed) - _random.Next(MaxSpeed / 2);
+            int speed = MaxSpeed/2;
+            if(oldValue >= CanvasSize/3 && oldValue <= CanvasSize*2/3)
+            speed = MaxSpeed;
+            if (oldValue <= CanvasSize / 4 || oldValue >= CanvasSize * 3 / 4)
+                speed = MaxSpeed/10;
+            if (oldValue > xMax)
+                return oldValue - _random.Next(speed);
 
-            return newValue;
+            return oldValue + _random.Next(MaxSpeed) - _random.Next(speed / 2);
         }
 
         private void DrawNewEllipse()
         {
-            if (molecules.Count >= 20) return;
+            if (molecules.Count >= 2) return;
 
             Ellipse ellipse = new Ellipse();
 
             ellipse.Stroke = SystemColors.WindowFrameBrush;
             ellipse.Height = CircleDiameter;
             ellipse.Width = CircleDiameter;
-            ellipse.Margin = new Thickness(CircleDiameter);
+            ellipse.Margin = new Thickness(0);
+            ellipse.Fill = new SolidColorBrush(Colors.Blue);
             MyCanvas.Children.Add(ellipse);
             molecules.Add(ellipse);
         }

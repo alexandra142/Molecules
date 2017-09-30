@@ -9,7 +9,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <Canvas x:Name="MyCanvas" Width="500" Height="500" Margin="0">
+        <Canvas x:Name="MyCanvas" Width="500" Height="500" >
             <Canvas.Background>
                 <SolidColorBrush Color="White" Opacity="0"/>
             </Canvas.Background>
