@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -20,14 +21,19 @@ namespace Molecules
         private const int MaxSpeed = 100;
         private const int MaternitySize = 75;
         private const int AirPumpSize = 75;
-        private const int WindowCanvasDiff = 50;
+        private const int capacity = 20;
         #endregion constants
 
         private int xMax = CanvasSize - AirPumpSize - CircleDiameter / 2;
-        private readonly HashSet<Ellipse> molecules = new HashSet<Ellipse>();
+        public HashSet<Ellipse> molecules = new HashSet<Ellipse>();
         private readonly Random _random = new Random();
         private readonly BackgroundWorker _backgroundWorker;
-        private readonly Pool<Ellipse> pool;
+        private readonly Pool<Ellipse> _pool;
+
+        Task _drawNew;
+        Task _moveTask;
+        Task _deleteTask;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -38,31 +44,67 @@ namespace Molecules
             AirPump.Width = AirPumpSize;
             AirPump.Height = AirPumpSize;
 
-            pool = new Pool<Ellipse>(new MoleculeFactory<Ellipse>());
+            _pool = new Pool<Ellipse>(new MoleculeFactory(this.Dispatcher), capacity);
 
 
             _backgroundWorker = new BackgroundWorker();
 
             _backgroundWorker.DoWork += (s, ev) =>
             {
-                Dispatcher.Invoke(DrawNewEllipse);
-                Dispatcher.Invoke(Move);
-                Dispatcher.Invoke(Delete);
+                Task drawNew = new Task(DrawNewEllipse);
+                drawNew.Start();
+                Task moveTask = new Task(Move);
+                moveTask.Start();
+
+                Task deleteTask = new Task(Delete);
+                deleteTask.Start();
+
+                Dispatcher.Invoke(() =>
+                {
+                    if (drawNew.IsCompleted)
+                    {
+                        drawNew = new Task(DrawNewEllipse);
+                        drawNew.Start();
+                    }
+                    if (moveTask.IsCompleted)
+                    {
+                        moveTask = new Task(Move);
+                        moveTask.Start();
+                    }
+                    if (deleteTask.IsCompleted)
+                    {
+                        deleteTask = new Task(Delete);
+                        deleteTask.Start();
+                    }
+                });
+
             };
         }
 
         private void Delete()
         {
-            foreach (var molecule in molecules)
+            Dispatcher.Invoke(() =>
             {
-                if (molecule.Margin.Left > xMax && molecule.Margin.Top > xMax)
+                List<Ellipse> moleculesToDelete = new List<Ellipse>();
+
+                foreach (var molecule in molecules)
+                {
+                    if (molecule.Margin.Left < xMax || molecule.Margin.Top < xMax) continue;
+
                     MyCanvas.Children.Remove(molecule);
-            }
+                    _pool.ReturnInstance(molecule);
+                    moleculesToDelete.Add(molecule);
+                }
+
+                for (int i = 0; i < moleculesToDelete.Count; i++)
+                {
+                    molecules.Remove(moleculesToDelete[i]);
+                }
+            });
         }
 
         private void MainWindow_OnLoaded(object sender, RoutedEventArgs e)
         {
-
             System.Windows.Threading.DispatcherTimer dispatcherTimer = new System.Windows.Threading.DispatcherTimer();
             dispatcherTimer.Tick += DispatcherTimer_Tick;
             dispatcherTimer.Interval = new TimeSpan(0, 0, 0, 0, Frequency);
@@ -71,17 +113,18 @@ namespace Molecules
 
         private void Move()
         {
-            foreach (var molecule in molecules)
+            Dispatcher.Invoke(() =>
             {
-
-                Thickness newMargin = new Thickness();
-                newMargin.Left = GetNewValue(molecule.Margin.Left);
-                newMargin.Right = GetNewValue(molecule.Margin.Right);
-                newMargin.Top = GetNewValue(molecule.Margin.Top);
-                newMargin.Bottom = GetNewValue(molecule.Margin.Bottom);
-                molecule.Margin = newMargin;
-            }
-
+                foreach (var molecule in molecules)
+                {
+                    Thickness newMargin = new Thickness();
+                    newMargin.Left = GetNewValue(molecule.Margin.Left);
+                    newMargin.Right = GetNewValue(molecule.Margin.Right);
+                    newMargin.Top = GetNewValue(molecule.Margin.Top);
+                    newMargin.Bottom = GetNewValue(molecule.Margin.Bottom);
+                    molecule.Margin = newMargin;
+                }
+            });
         }
 
         private double GetNewValue(double oldValue)
@@ -99,17 +142,16 @@ namespace Molecules
 
         private void DrawNewEllipse()
         {
-            if (molecules.Count >= 2) return;
+            Ellipse ellipse = _pool.GiveWait();
 
-            Ellipse ellipse = new Ellipse();
+            if (ellipse == default(Ellipse))
+                return;
 
-            ellipse.Stroke = SystemColors.WindowFrameBrush;
-            ellipse.Height = CircleDiameter;
-            ellipse.Width = CircleDiameter;
-            ellipse.Margin = new Thickness(0);
-            ellipse.Fill = new SolidColorBrush(Colors.Blue);
-            MyCanvas.Children.Add(ellipse);
-            molecules.Add(ellipse);
+            Dispatcher.Invoke(() =>
+            {
+                molecules.Add(ellipse);
+                MyCanvas.Children.Add(ellipse);
+            });
         }
 
         private void DispatcherTimer_Tick(object sender, EventArgs e)
@@ -118,5 +160,5 @@ namespace Molecules
                 _backgroundWorker.RunWorkerAsync();
         }
     }
-   
+
 }

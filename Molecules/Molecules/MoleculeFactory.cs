@@ -20,6 +20,7 @@ namespace Molecules
                 ellipse.Width = CircleDiameter;
                 ellipse.StrokeThickness = 5;
 
+                MyCanvas.Children.Add(ellipse);
             }));
             return ellipse;
 

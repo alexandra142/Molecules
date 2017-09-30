@@ -1,7 +1,10 @@
-﻿namespace Molecules
+﻿using System.Collections.Generic;
+
+namespace Molecules
 {
     public interface IPool<T>
     {
+      
         /// <summary>
         /// Return free T, if there is no free create a new one
         /// </summary>

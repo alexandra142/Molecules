@@ -1,16 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Molecules
 {
     public class Pool<T> : IPool<T>
     {
-        private static List<T> _freeInstances = new List<T>();
-        private static HashSet<T> _usedInstances = new HashSet<T>();
+        public static List<T> FreeInstances = new List<T>();
+        public static HashSet<T> UsedInstances = new HashSet<T>();
+
         private readonly IFactory<T> _generator;
         private readonly uint _capacity;
-        private int _count = _freeInstances.Count + _usedInstances.Count;
 
         //TOdo ako sa zmeni rychlost ked menit zamky?
         private readonly object _syncGiveNow = new object();
@@ -60,74 +62,60 @@ namespace Molecules
         #region public method
         public T GiveNow()
         {
-            lock (_syncGive)
-            {
-                if (_freeInstances.Any())
-                    return GiveExistingFree();
-            }
+            if (FreeInstances.Any())
+                return GiveExistingFree();
             return Create(false);
         }
 
         public T GiveWait()
         {
-            lock (_syncGive)
-            {
-                if (_freeInstances.Any())
-                    return GiveExistingFree();
-                if (_count < _capacity)
-                    return Create(false);
-                while (_freeInstances.Any())
-                {
-                }
+            if (FreeInstances.Any())
                 return GiveExistingFree();
+            if (FreeInstances.Count + UsedInstances.Count < _capacity)
+                return Create(false);
+            while (!FreeInstances.Any() || Process.GetCurrentProcess().Threads.Count < Environment.ProcessorCount)
+            {
+                if (Process.GetCurrentProcess().Threads.Count >= Environment.ProcessorCount)
+                    return default(T);
             }
+            return GiveExistingFree();
         }
 
         public T GiveFree()
         {
-            lock (_syncGive)
-            {
-                return _freeInstances.Any() ? GiveExistingFree() : default(T);
-            }
+            return FreeInstances.Any() ? GiveExistingFree() : default(T);
         }
 
         public void ReturnInstance(T instance)
         {
-            lock (_syncGive)
-            {
-                if (!_usedInstances.Contains(instance))
-                    throw new Exception("Cannot return this instance.");
-                _usedInstances.Remove(instance);
-                _freeInstances.Add(instance);
-            }
+            if (!UsedInstances.Contains(instance))
+                throw new Exception("Cannot return this instance.");
+            UsedInstances.Remove(instance);
+            FreeInstances.Add(instance);
+            _generator.Reset(instance);
         }
         #endregion public method
 
         #region private method
         private T Create(bool free)
         {
-            lock (_syncGive)
-            {
-                if (_count >= _capacity)
-                    throw new Exception("Cannot create a new instance. The Pool si full.");
-                T t = _generator.NewInstance();
-                //_count++;
-                if (free)
+            if (FreeInstances.Count + UsedInstances.Count >= _capacity)
+                throw new Exception("Cannot create a new instance. The Pool si full.");
+            T t = _generator.NewInstance();
+            if (free)
 
-                    _freeInstances.Add(t);
-                else
-                    _usedInstances.Add(t);
+                FreeInstances.Add(t);
+            else
+                UsedInstances.Add(t);
 
-                return t;
-            }
-
+            return t;
         }
 
         private T GiveExistingFree()
         {
-            T t = _freeInstances.FirstOrDefault();
-            _freeInstances.Remove(t);
-            _usedInstances.Add(t);
+            T t = FreeInstances.FirstOrDefault();
+            FreeInstances.Remove(t);
+            UsedInstances.Add(t);
 
             return t;
         }

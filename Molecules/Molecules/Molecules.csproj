@@ -64,6 +64,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Factory.cs" />
     <Compile Include="Pool.cs" />
     <Compile Include="IFactory.cs" />
     <Compile Include="IPool.cs" />
